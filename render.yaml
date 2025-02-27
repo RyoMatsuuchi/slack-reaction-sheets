@@ -1,0 +1,39 @@
+services:
+  # Webサービスの設定
+  - type: web
+    name: slack-reaction-sheets
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_SIGNING_SECRET
+        sync: false
+      - key: GOOGLE_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_KEY
+        sync: false
+      - key: TARGET_REACTION
+        value: white_check_mark
+      - key: PORT
+        value: 3000
+    autoDeploy: true
+    healthCheckPath: /health
+
+# グローバル環境変数
+envVarGroups:
+  - name: slack-config
+    envVars:
+      - key: SLACK_BOT_TOKEN
+        value: "" # Renderのダッシュボードで設定
+      - key: SLACK_SIGNING_SECRET
+        value: "" # Renderのダッシュボードで設定
+  - name: google-config
+    envVars:
+      - key: GOOGLE_SPREADSHEET_ID
+        value: "" # Renderのダッシュボードで設定
+      - key: GOOGLE_SERVICE_ACCOUNT_KEY
+        value: "" # Renderのダッシュボードで設定（JSON形式）
