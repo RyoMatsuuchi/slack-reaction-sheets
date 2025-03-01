@@ -1,4 +1,5 @@
 import { App as SlackApp } from '@slack/bolt';
+import express from 'express';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { SheetRow } from './types';
@@ -10,6 +11,29 @@ logger.info('Starting Slack app with config:', {
   environment: config.app.nodeEnv,
 });
 
+// Create Express app
+const expressApp = express();
+
+// Add health check endpoint
+expressApp.get('/health', async (req, res) => {
+  try {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+    });
+    logger.debug('Health check succeeded');
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Create Slack app
 export const app = new SlackApp({
   token: config.slack.botToken,
@@ -17,6 +41,16 @@ export const app = new SlackApp({
   socketMode: config.slack.socketMode,
   ...(config.slack.socketMode && config.slack.appToken ? { appToken: config.slack.appToken } : {}),
   logLevel: config.app.logLevel,
+  customRoutes: [
+    {
+      path: '/health',
+      method: ['GET'],
+      handler: (req, res) => {
+        res.writeHead(200);
+        res.end('OK');
+      },
+    },
+  ],
 });
 
 // Create service instances
@@ -107,6 +141,11 @@ export const startServer = async (): Promise<void> => {
       logger.info('Starting Slack app in Socket Mode');
       await app.start();
       logger.info('Slack app is running in Socket Mode');
+      
+      // In Socket Mode, we need to start Express separately for health checks
+      expressApp.listen(config.app.port, () => {
+        logger.info(`Health check server listening on port ${config.app.port}`);
+      });
     } else {
       logger.info('Starting Slack app in HTTP Mode');
       await app.start(config.app.port);
