@@ -1,0 +1,50 @@
+{
+  "name": "Slack Reaction Sheets Dev",
+  "dockerFile": "Dockerfile",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "forwardPorts": [3000, 443],
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "rooveterinaryinc.roo-cline",
+        "rooveterinaryinc.roo-code",
+        "github.copilot",
+        "github.copilot-chat"
+      ],
+      "settings": {
+        "github.copilot.chat.localeOverride": "ja",
+        "github.copilot.chat.scopeSelection": true,
+        "roo-cline.allowedCommands": [
+          "npm test",
+          "npm install",
+          "tsc",
+          "git log",
+          "git diff",
+          "git show"
+        ]
+      }
+    }
+  },
+  "remoteUser": "node",
+  "hostRequirements": {
+    "memory": "4gb",
+    "cpus": 2
+  },
+  "portsAttributes": {
+    "3000": {
+      "label": "Application",
+      "onAutoForward": "notify"
+    },
+    "443": {
+      "label": "HTTPS",
+      "onAutoForward": "notify"
+    }
+  }
+}
