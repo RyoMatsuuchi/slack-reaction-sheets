@@ -30,11 +30,14 @@ export class SlackServiceImpl implements SlackService {
       }
 
       const message = result.messages[0];
+      const permalink = await this.getPermalink(channel, timestamp);
+
       return {
         ts: message.ts || timestamp,
         user: message.user || 'unknown',
         text: message.text || '',
-        channel
+        channel,
+        permalink
       };
     } catch (error) {
       logger.error('Error fetching message info:', error);
@@ -47,7 +50,6 @@ export class SlackServiceImpl implements SlackService {
   }
 
   async getUserInfo(userId: string): Promise<string> {
-    // キャッシュをチェック
     const cachedUsername = this.userCache.get(userId);
     if (cachedUsername) {
       return cachedUsername;
@@ -55,14 +57,18 @@ export class SlackServiceImpl implements SlackService {
 
     try {
       const result = await this.client.users.info({ user: userId });
-      if (!result.user || !result.user.name) {
+      if (!result.user) {
         throw new AppError('User not found', 'USER_NOT_FOUND', 404);
       }
 
-      // キャッシュに保存
-      const username = result.user.name;
-      this.userCache.set(userId, username);
-      return username;
+      // 表示名を優先的に使用し、なければプロフィール表示名、それもなければユーザー名を使用
+      const displayName = result.user.profile?.display_name || 
+                          result.user.profile?.real_name || 
+                          result.user.name || 
+                          'unknown';
+      
+      this.userCache.set(userId, displayName);
+      return displayName;
     } catch (error) {
       logger.error('Error fetching user info:', error);
       throw new AppError(
@@ -74,7 +80,6 @@ export class SlackServiceImpl implements SlackService {
   }
 
   async getChannelInfo(channelId: string): Promise<string> {
-    // キャッシュをチェック
     const cachedChannelName = this.channelCache.get(channelId);
     if (cachedChannelName) {
       return cachedChannelName;
@@ -86,7 +91,6 @@ export class SlackServiceImpl implements SlackService {
         throw new AppError('Channel not found', 'CHANNEL_NOT_FOUND', 404);
       }
 
-      // キャッシュに保存
       const channelName = result.channel.name;
       this.channelCache.set(channelId, channelName);
       return channelName;
@@ -100,13 +104,52 @@ export class SlackServiceImpl implements SlackService {
     }
   }
 
-  // Slackアプリのインスタンスを返すゲッター
+  async getPermalink(channel: string, timestamp: string): Promise<string> {
+    try {
+      const result = await this.client.chat.getPermalink({
+        channel,
+        message_ts: timestamp,
+      });
+
+      if (!result.permalink) {
+        throw new AppError('Permalink not found', 'PERMALINK_NOT_FOUND', 404);
+      }
+
+      return result.permalink;
+    } catch (error) {
+      logger.error('Error fetching permalink:', error);
+      throw new AppError(
+        'Failed to fetch permalink',
+        'SLACK_API_ERROR',
+        500
+      );
+    }
+  }
+
+  async getChannelType(channelId: string): Promise<string> {
+    try {
+      const result = await this.client.conversations.info({ channel: channelId });
+      if (!result.channel) {
+        throw new AppError('Channel not found', 'CHANNEL_NOT_FOUND', 404);
+      }
+      return result.channel.is_im ? 'dm' : 
+             result.channel.is_private ? 'private' : 
+             'public';
+    } catch (error) {
+      logger.error('Error fetching channel type:', error);
+      throw new AppError(
+        'Failed to fetch channel type',
+        'SLACK_API_ERROR',
+        500
+      );
+    }
+  }
+
   getApp(): App {
     return this.app;
   }
 }
 
-// Slackサービスのシングルトンインスタンスを作成
 export const createSlackService = (): SlackService => {
   const app = new App({
     token: config.slack.botToken,

@@ -5,6 +5,7 @@ export interface SlackMessage {
   text: string;
   channel: string;
   team?: string;
+  permalink?: string;  // メッセージへのパーマリンク
 }
 
 export interface SlackReactionEvent {
@@ -22,24 +23,42 @@ export interface SlackReactionEvent {
 
 // Google Sheets Types
 export interface SheetRow {
-  timestamp: string;
-  user: string;
-  channel: string;
-  message: string;
-  reaction: string;
+  "#": number;                     // A列: 通し番号
+  "システム": string;              // B列: システム
+  "発生日": string;                // C列: 発生日
+  "起点\n(リンク等)": string;      // D列: 起点
+  "対応者1": string;               // E列
+  "対応者2": string;               // F列
+  "対応者3": string;               // G列
+  "内容": string;                  // H列: メッセージ内容
+  "完了": string;                  // I列
+  "非表示": string;                // J列
+  "調査結果\n対応結果": string;    // K列
+  "Support Issue": string;         // L列
+  "関連画面1": string;             // M列
+  "関連画面2": string;             // N列
+  "関連画面3": string;             // O列
+  "関連テーブル1": string;         // P列
+  "関連テーブル2": string;         // Q列
+  "関連テーブル3": string;         // R列
 }
 
 // Service Interfaces
 export interface SlackService {
   getMessageInfo(channel: string, timestamp: string): Promise<SlackMessage>;
-  getUserInfo(userId: string): Promise<string>; // Returns username
-  getChannelInfo(channelId: string): Promise<string>; // Returns channel name
+  getUserInfo(userId: string): Promise<string>;
+  getChannelInfo(channelId: string): Promise<string>;
+  getPermalink(channel: string, timestamp: string): Promise<string>;
+  getChannelType(channelId: string): Promise<string>;
 }
 
 export interface SheetsService {
-  appendRow(row: SheetRow): Promise<void>;
+  appendRow(row: Partial<SheetRow>): Promise<void>;
   getLastRow(): Promise<number>;
   formatHeaders(): Promise<void>;
+  isEventProcessed(eventId: string): boolean;
+  markEventAsProcessed(eventId: string): void;
+  formatDateForSheet(date: Date): string;
 }
 
 // Error Types

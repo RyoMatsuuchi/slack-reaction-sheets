@@ -9,7 +9,8 @@
     "build": "tsc",
     "lint": "eslint 'src/**/*.{js,ts}'",
     "lint:fix": "eslint 'src/**/*.{js,ts}' --fix",
-    "test": "jest"
+    "test": "jest",
+    "test:sheets": "ts-node src/test-sheets.ts"
   },
   "engines": {
     "node": ">=18.0.0"

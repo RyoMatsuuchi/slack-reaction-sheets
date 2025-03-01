@@ -1,7 +1,10 @@
-import { app } from './app';
+import express from 'express';
+import { logger } from './utils/logger';
+
+const healthApp = express();
 
 // ヘルスチェックエンドポイント
-app.get('/health', async (req, res) => {
+healthApp.get('/health', async (req, res) => {
   try {
     // 基本的なヘルスチェック（可用性確認）
     res.status(200).json({
@@ -10,7 +13,9 @@ app.get('/health', async (req, res) => {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
     });
+    logger.debug('Health check succeeded');
   } catch (error) {
+    logger.error('Health check failed:', error);
     res.status(500).json({
       status: 'error',
       message: 'Health check failed',
@@ -18,3 +23,5 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+export { healthApp };
