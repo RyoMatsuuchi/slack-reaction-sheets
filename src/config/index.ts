@@ -8,7 +8,6 @@ dotenv.config();
 const requiredEnvVars = [
   'SLACK_BOT_TOKEN',
   'SLACK_SIGNING_SECRET',
-  'SLACK_APP_TOKEN', // Added for Socket Mode
   'GOOGLE_SPREADSHEET_ID',
   'GOOGLE_SERVICE_ACCOUNT_KEY',
 ] as const;
@@ -48,10 +47,10 @@ const getLogLevel = (level: string): LogLevel => {
 // Configuration object
 export const config = {
   slack: {
-    // We can safely assert non-null here because we checked above
     botToken: process.env.SLACK_BOT_TOKEN as string,
     signingSecret: process.env.SLACK_SIGNING_SECRET as string,
-    appToken: process.env.SLACK_APP_TOKEN as string,
+    socketMode: process.env.SOCKET_MODE === 'true',
+    appToken: process.env.SLACK_APP_TOKEN, // Optional for Socket Mode
   },
   google: {
     spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID as string,

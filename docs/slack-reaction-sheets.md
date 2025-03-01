@@ -12,7 +12,8 @@ Slackの特定のリアクションが付けられたメッセージを自動的
 
 ### アーキテクチャ
 - Node.js + TypeScriptによるサーバーレスアプリケーション
-- Webhookベースのイベント駆動型アーキテクチャ
+- Socket ModeまたはHTTPモードに対応したイベント駆動型アーキテクチャ
+- 開発環境と本番環境で異なる動作モードをサポート
 
 ### 使用技術
 - **バックエンド**
@@ -38,9 +39,23 @@ Slackの特定のリアクションが付けられたメッセージを自動的
    - スプレッドシートのフォーマット管理
    - 特定の行への挿入機能
 
+### 動作モード
+
+1. **Socket Mode（開発環境向け）**
+   - WebSocketベースの双方向通信
+   - ファイアウォール内での動作が可能
+   - App Level Tokenが必要
+   - 開発時のデバッグに適する
+
+2. **HTTP Mode（本番環境向け）**
+   - 標準的なHTTPエンドポイントを使用
+   - パブリックなURLが必要
+   - Renderなどのホスティングサービスに最適
+   - 15分ルールの影響を受けにくい
+
 ### データフロー
 1. Slackでメッセージにリアクションが追加される
-2. Webhookによりアプリケーションにイベントが通知
+2. Socket ModeまたはHTTP経由でアプリケーションにイベントが通知
 3. メッセージ情報を取得・整形
 4. Google Sheetsに転記
 
@@ -78,6 +93,14 @@ Slackの特定のリアクションが付けられたメッセージを自動的
    - `groups:history`
    - `users:read` (ユーザー情報取得用)
 
+2. **動作モード別の設定**
+   - Socket Mode:
+     - Socket Modeを有効化
+     - App Level Tokenを生成
+   - HTTP Mode:
+     - Event Subscriptionsを有効化
+     - Request URLを設定: `https://your-app.onrender.com/slack/events`
+
 ### Google Cloud設定
 1. **必要なAPI**
    - Google Sheets API
@@ -88,7 +111,8 @@ Slackの特定のリアクションが付けられたメッセージを自動的
 # Slack設定
 SLACK_BOT_TOKEN=xoxb-...
 SLACK_SIGNING_SECRET=...
-SLACK_APP_TOKEN=xapp-... (Socket Modeの場合)
+SOCKET_MODE=true/false  # 動作モードの選択
+SLACK_APP_TOKEN=xapp-... (Socket Mode時のみ必要)
 
 # Google Sheets設定
 GOOGLE_SPREADSHEET_ID=...
@@ -96,6 +120,8 @@ GOOGLE_SERVICE_ACCOUNT_KEY=...
 
 # アプリケーション設定
 TARGET_REACTION=white_check_mark
+PORT=3000  # HTTP Mode時のポート番号
+NODE_ENV=development/production
 ```
 
 ## エラーハンドリング
@@ -158,7 +184,8 @@ startCommand: npm start
 
 ### 環境変数設定
 - Renderダッシュボードで設定
-- 本番環境と開発環境で別々に管理
+- Socket Mode: false（HTTP Modeで動作）
+- 本番環境用の設定を適用
 
 ### 監視設定
 - Renderの標準ログ機能を使用

@@ -10,12 +10,12 @@ logger.info('Starting Slack app with config:', {
   environment: config.app.nodeEnv,
 });
 
-// Create Slack app with Socket Mode
+// Create Slack app
 export const app = new SlackApp({
   token: config.slack.botToken,
   signingSecret: config.slack.signingSecret,
-  socketMode: true, // Enable Socket Mode
-  appToken: config.slack.appToken, // Add App-Level Token
+  socketMode: config.slack.socketMode,
+  ...(config.slack.socketMode && config.slack.appToken ? { appToken: config.slack.appToken } : {}),
   logLevel: config.app.logLevel,
 });
 
@@ -103,15 +103,22 @@ app.error(async (error) => {
 // Start server function
 export const startServer = async (): Promise<void> => {
   try {
-    logger.info('Starting Slack app in Socket Mode');
-    await app.start();
-    logger.info('Slack app is running in Socket Mode');
+    if (config.slack.socketMode) {
+      logger.info('Starting Slack app in Socket Mode');
+      await app.start();
+      logger.info('Slack app is running in Socket Mode');
+    } else {
+      logger.info('Starting Slack app in HTTP Mode');
+      await app.start(config.app.port);
+      logger.info(`Slack app is running on port ${config.app.port}`);
+    }
     
     // Log successful startup details
     const authTest = await app.client.auth.test();
     logger.info('Server startup complete', {
       botId: authTest.bot_id,
       teamId: authTest.team_id,
+      mode: config.slack.socketMode ? 'Socket Mode' : 'HTTP Mode'
     });
   } catch (error) {
     logger.error('Failed to start Slack app:', error);

@@ -64,18 +64,44 @@ npm start
 # Slack設定
 SLACK_BOT_TOKEN=xoxb-your-token
 SLACK_SIGNING_SECRET=your-secret
-SLACK_APP_TOKEN=xapp-your-token # Socket Modeの場合
+SOCKET_MODE=true  # true: Socket Mode, false: HTTP Mode
+SLACK_APP_TOKEN=xapp-your-token  # Socket Mode時のみ必要
 
 # Google Sheets設定
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
 GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 
 # アプリケーション設定
-PORT=3000
+PORT=3000  # HTTP Mode時のポート番号
 TARGET_REACTION=white_check_mark
 LOG_LEVEL=info
 NODE_ENV=production
 ```
+
+## 動作モード
+
+アプリケーションは2つの動作モードをサポートしています：
+
+### Socket Mode（開発環境向け）
+- WebSocketを使用してSlackと通信
+- ファイアウォール内からでも動作可能
+- 設定方法：
+  ```
+  SOCKET_MODE=true
+  SLACK_APP_TOKEN=xapp-...  # App Level Tokenが必要
+  ```
+
+### HTTP Mode（本番環境向け）
+- 通常のHTTPエンドポイントを使用
+- Renderなどのホスティングサービスに最適
+- 設定方法：
+  ```
+  SOCKET_MODE=false
+  ```
+- Slack App設定でRequest URLの設定が必要：
+  ```
+  https://your-app.onrender.com/slack/events
+  ```
 
 ## データ転記仕様
 
@@ -147,4 +173,4 @@ MIT
 
 ## 作者
 
-[Your Name]
+Ryo Matsuuchi
