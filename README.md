@@ -1,28 +1,30 @@
 # Slack Reaction to Google Sheets Sync
 
-Slackのメッセージに特定のリアクション（✅）が付けられた時、自動的にGoogle Sheetsに内容を転記するアプリケーション。
+Slack のメッセージに特定のリアクション（✅）が付けられた時、自動的に Google Sheets に内容を転記するアプリケーション。
 
 ## 機能
 
-- Slackメッセージの自動転記
-- Google Sheetsとの連携
+- Slack メッセージの自動転記
+- Google Sheets との連携
 - メッセージへのハイパーリンク付き参照
 - 日本時間でのタイムスタンプ
 - エラーハンドリングとログ機能
-- Slackユーザーの表示名（display_name）の取得
+- Slack ユーザーの表示名（display_name）の取得
 - 特定の行への挿入機能
-- 既存データの保持（A列の通し番号）
+- 既存データの保持（A 列の通し番号）
 
 ## セットアップ手順
 
-セットアップは3つのステップで行います：
+セットアップは 3 つのステップで行います：
 
-1. [Google Spreadsheetの準備](./SPREADSHEET_SETUP.md)
+1. [Google Spreadsheet の準備](./SPREADSHEET_SETUP.md)
+
    - スプレッドシートの作成と設定
    - サービスアカウントの設定
    - アクセス権限の付与
 
-2. [Slackアプリの設定](./SLACK_APP_SETUP.md)
+2. [Slack アプリの設定](./SLACK_APP_SETUP.md)
+
    - アプリケーションの作成
    - 権限の設定
    - ボットトークンの取得
@@ -34,10 +36,10 @@ Slackのメッセージに特定のリアクション（✅）が付けられた
 
 ## 必要要件
 
-- Node.js 18.0.0以上
-- Slackワークスペースの管理者権限
-- Google Cloud Platformのプロジェクト
-- Google Sheets API有効化
+- Node.js 18.0.0 以上
+- Slack ワークスペースの管理者権限
+- Google Cloud Platform のプロジェクト
+- Google Sheets API 有効化
 
 ## クイックスタート
 
@@ -80,10 +82,11 @@ NODE_ENV=production
 
 ## 動作モード
 
-アプリケーションは2つの動作モードをサポートしています：
+アプリケーションは 2 つの動作モードをサポートしています：
 
 ### Socket Mode（開発環境向け）
-- WebSocketを使用してSlackと通信
+
+- WebSocket を使用して Slack と通信
 - ファイアウォール内からでも動作可能
 - 設定方法：
   ```
@@ -92,13 +95,14 @@ NODE_ENV=production
   ```
 
 ### HTTP Mode（本番環境向け）
-- 通常のHTTPエンドポイントを使用
-- Renderなどのホスティングサービスに最適
+
+- 通常の HTTP エンドポイントを使用
+- Render などのホスティングサービスに最適
 - 設定方法：
   ```
   SOCKET_MODE=false
   ```
-- Slack App設定でRequest URLの設定が必要：
+- Slack App 設定で Request URL の設定が必要：
   ```
   https://your-app.onrender.com/slack/events
   ```
@@ -106,16 +110,19 @@ NODE_ENV=production
 ## データ転記仕様
 
 ### 行の挿入位置
-- C列（発生日）の最後のデータがある行の次の行に挿入
+
+- C 列（発生日）の最後のデータがある行の次の行に挿入
 - 行が存在しない場合のみ、新しい行を追加
 
 ### 各列の設定
-- A列（#）: 既存の値を保持（上書きしない）
-- B列（システム）: "i-backyard" に固定
-- C列（発生日）: YYYY/MM/DD形式（日本時間）
-- D列（起点）: "Slack"という表示でSlackメッセージへのハイパーリンク
-- E列（対応者1）: Slackの表示名（display_name）
-- I列（完了）: 空欄
+
+- A 列（#）: 既存の値を保持（上書きしない）
+- B 列（システム）: "i-backyard" に固定
+- C 列（発生日）: YYYY/MM/DD 形式（日本時間）
+- D 列（起点）: "Slack"という表示で Slack メッセージへのハイパーリンク
+- E 列（対応者 1）: 空欄
+- H 列（内容）: "from: Slack の表示名（display_name）" + Slack の本文
+- I 列（完了）: 空欄
 
 ## プロジェクト構成
 
@@ -137,9 +144,9 @@ slack-reaction-sheets/
 
 ## デプロイ
 
-Render.comを使用したデプロイ：
+Render.com を使用したデプロイ：
 
-1. GitHubリポジトリを連携
+1. GitHub リポジトリを連携
 2. 環境変数を設定
 3. デプロイを実行
 

@@ -107,8 +107,8 @@ app.event('reaction_added', async ({ event }) => {
       "システム": "i-backyard",
       "発生日": sheetsService.formatDateForSheet(messageDate),
       "起点\n(リンク等)": `=HYPERLINK("${message.permalink}", "Slack")`,
-      "対応者1": username, // Slackの表示名を使用
-      "内容": message.text,
+      "対応者1": "", // 空欄にする
+      "内容": `from: ${username}\n${message.text}`, // 表示名とメッセージ本文を結合
       "完了": "" // 空欄にする
     };
 
