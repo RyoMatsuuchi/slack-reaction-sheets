@@ -145,6 +145,101 @@ export class SlackServiceImpl implements SlackService {
     }
   }
 
+  async sendErrorNotification(error: Error, context?: Record<string, unknown>): Promise<void> {
+    logger.info('sendErrorNotification called:', {
+      errorName: error.name,
+      errorMessage: error.message,
+      channel: config.app.errorNotificationChannel,
+      context
+    });
+
+    const channel = config.app.errorNotificationChannel;
+    if (!channel) {
+      logger.debug('Error notification channel not configured, skipping notification');
+      return;
+    }
+
+    try {
+      const timestamp = new Date().toISOString();
+      const contextText = context
+        ? Object.entries(context).map(([k, v]) => `*${k}:* ${v}`).join('\n')
+        : '';
+
+      await this.client.chat.postMessage({
+        channel,
+        text: `🚨 エラーが発生しました: ${error.message}`,
+        blocks: [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: '🚨 エラー通知', emoji: true }
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*エラー名:*\n${error.name}` },
+              { type: 'mrkdwn', text: `*発生時刻:*\n${timestamp}` }
+            ]
+          },
+          {
+            type: 'section',
+            text: { type: 'mrkdwn', text: `*メッセージ:*\n${error.message}` }
+          },
+          ...(contextText ? [{
+            type: 'section' as const,
+            text: { type: 'mrkdwn' as const, text: `*コンテキスト:*\n${contextText}` }
+          }] : []),
+          {
+            type: 'context',
+            elements: [
+              { type: 'mrkdwn', text: `環境: ${config.app.nodeEnv}` }
+            ]
+          },
+          {
+            type: 'actions',
+            elements: [
+              {
+                type: 'button',
+                text: { type: 'plain_text', text: '📋 Renderログを確認', emoji: true },
+                url: 'https://dashboard.render.com/web/srv-cv19sf1u0jms7386cp90/logs',
+                action_id: 'view_render_logs'
+              },
+              ...(context?.messagePermalink ? [{
+                type: 'button' as const,
+                text: { type: 'plain_text' as const, text: '📝 元メッセージを確認', emoji: true },
+                url: context.messagePermalink as string,
+                action_id: 'view_original_message'
+              }] : [])
+            ]
+          }
+        ]
+      });
+
+      logger.info('Error notification sent to Slack channel:', { channel });
+    } catch (notifyError) {
+      // 通知エラーでアプリ全体を落とさない
+      logger.error('Failed to send error notification:', notifyError);
+    }
+  }
+
+  async addReaction(channel: string, timestamp: string, reaction: string): Promise<void> {
+    try {
+      await this.client.reactions.add({
+        channel,
+        timestamp,
+        name: reaction
+      });
+      logger.info('Added reaction to message:', { channel, timestamp, reaction });
+    } catch (error) {
+      // already_reacted エラーは無視（既にリアクション済み）
+      if ((error as any).data?.error === 'already_reacted') {
+        logger.debug('Reaction already exists, skipping');
+        return;
+      }
+      logger.error('Failed to add reaction:', error);
+      throw new AppError('Failed to add reaction', 'SLACK_REACTION_ERROR', 500);
+    }
+  }
+
   getApp(): App {
     return this.app;
   }

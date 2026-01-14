@@ -50,6 +50,8 @@ export interface SlackService {
   getChannelInfo(channelId: string): Promise<string>;
   getPermalink(channel: string, timestamp: string): Promise<string>;
   getChannelType(channelId: string): Promise<string>;
+  sendErrorNotification(error: Error, context?: Record<string, unknown>): Promise<void>;
+  addReaction(channel: string, timestamp: string, reaction: string): Promise<void>;
 }
 
 export interface SheetsService {

@@ -114,9 +114,12 @@ app.event('reaction_added', async ({ event }) => {
 
     // スプレッドシートに行を追加
     await sheetsService.appendRow(row);
-    
+
     // イベントを処理済みとしてマーク
     sheetsService.markEventAsProcessed(eventId);
+
+    // 成功時にリアクションを追加
+    await slackService.addReaction(event.item.channel, event.item.ts, 'list-added');
 
     logger.info('Successfully processed reaction and added to spreadsheet', {
       messageId: message.ts,
@@ -126,12 +129,30 @@ app.event('reaction_added', async ({ event }) => {
 
   } catch (error) {
     logger.error('Error handling reaction_added event:', error);
+    // Slackにエラー通知を送信
+    if (error instanceof Error) {
+      // エラー時も元メッセージへのリンクを取得（可能であれば）
+      let messagePermalink: string | undefined;
+      try {
+        messagePermalink = await slackService.getPermalink(event.item.channel, event.item.ts);
+      } catch {
+        // permalinkの取得に失敗してもエラー通知は送信する
+      }
+      await slackService.sendErrorNotification(error, {
+        event: 'reaction_added',
+        channel: event.item.channel,
+        ts: event.item.ts,
+        messagePermalink
+      });
+    }
   }
 });
 
 // Global error handler
 app.error(async (error) => {
   logger.error('Slack app error:', error);
+  // Slackにエラー通知を送信
+  await slackService.sendErrorNotification(error, { source: 'global_error_handler' });
 });
 
 // Start server function

@@ -61,5 +61,6 @@ export const config = {
     targetReaction: process.env.TARGET_REACTION || 'white_check_mark',
     nodeEnv: process.env.NODE_ENV || 'development',
     logLevel: getLogLevel(process.env.LOG_LEVEL || 'info'),
+    errorNotificationChannel: process.env.ERROR_NOTIFICATION_CHANNEL || '',
   },
 };
