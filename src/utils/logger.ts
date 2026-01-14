@@ -17,7 +17,22 @@ class ConsoleLogger implements Logger {
 
   private formatMessage(level: string, message: string, args: any[]): string {
     const timestamp = new Date().toISOString();
-    const formattedArgs = args.length > 0 ? ` ${JSON.stringify(args)}` : '';
+    const formattedArgs = args.length > 0
+      ? ` ${JSON.stringify(args, (key, value) => {
+          if (value instanceof Error) {
+            return {
+              name: value.name,
+              message: value.message,
+              stack: value.stack,
+              ...Object.getOwnPropertyNames(value).reduce((acc, prop) => {
+                acc[prop] = (value as any)[prop];
+                return acc;
+              }, {} as Record<string, any>)
+            };
+          }
+          return value;
+        })}`
+      : '';
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${formattedArgs}`;
   }
 

@@ -31,3 +31,4 @@ Thumbs.db
 # Google Cloud
 credentials.json
 service-account.json
+/.claude/settings.local.json
