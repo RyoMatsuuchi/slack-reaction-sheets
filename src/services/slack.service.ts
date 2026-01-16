@@ -50,6 +50,12 @@ export class SlackServiceImpl implements SlackService {
   }
 
   async getUserInfo(userId: string): Promise<string> {
+    // 'unknown'または空の場合はAPIを呼ばない（ボット/アプリ投稿のメッセージ）
+    if (!userId || userId === 'unknown') {
+      logger.info('User ID is unknown (likely bot/app message), skipping API call');
+      return 'App/Bot';
+    }
+
     const cachedUsername = this.userCache.get(userId);
     if (cachedUsername) {
       return cachedUsername;
@@ -58,24 +64,36 @@ export class SlackServiceImpl implements SlackService {
     try {
       const result = await this.client.users.info({ user: userId });
       if (!result.user) {
-        throw new AppError('User not found', 'USER_NOT_FOUND', 404);
+        // レスポンスにユーザー情報がない場合はフォールバック
+        logger.warn(`User not found in response, using userId as fallback: ${userId}`);
+        this.userCache.set(userId, userId);
+        return userId;
       }
 
       // 表示名を優先的に使用し、なければプロフィール表示名、それもなければユーザー名を使用
-      const displayName = result.user.profile?.display_name || 
-                          result.user.profile?.real_name || 
-                          result.user.name || 
-                          'unknown';
-      
+      const displayName = result.user.profile?.display_name ||
+                          result.user.profile?.real_name ||
+                          result.user.name ||
+                          userId;
+
       this.userCache.set(userId, displayName);
       return displayName;
     } catch (error) {
-      logger.error('Error fetching user info:', error);
-      throw new AppError(
-        'Failed to fetch user info',
-        'SLACK_API_ERROR',
-        500
-      );
+      // Slack SDKのエラー構造を確認してuser_not_foundを判定
+      const slackError = error as { data?: { error?: string } };
+      const errorCode = slackError.data?.error;
+
+      // user_not_found等のAPIエラーの場合はフォールバック（削除済み/無効化ユーザー）
+      if (errorCode === 'user_not_found') {
+        logger.warn(`User not found (possibly deleted/deactivated): ${userId}`);
+        this.userCache.set(userId, userId);
+        return userId;
+      }
+
+      // その他のAPIエラーでもフォールバック（サービス停止を防ぐ）
+      logger.error('Error fetching user info:', { error, errorCode, userId });
+      logger.warn(`Falling back to userId due to API error: ${userId}, errorCode: ${errorCode || 'unknown'}`);
+      return userId;
     }
   }
 
