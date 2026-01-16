@@ -59,6 +59,9 @@ const slackService = createSlackService();
 
 // Handle reaction_added events
 app.event('reaction_added', async ({ event }) => {
+  // イベントIDを生成（重複処理防止のためのキー）
+  const eventId = `${event.item.channel}-${event.item.ts}`;
+
   try {
     logger.info('Received reaction_added event:', {
       user: event.user,
@@ -67,24 +70,23 @@ app.event('reaction_added', async ({ event }) => {
       ts: event.item.ts
     });
 
-    // イベントIDを生成
-    const eventId = `${event.item.channel}-${event.item.ts}`;
-
-    // イベントが既に処理済みかチェック
-    if (sheetsService.isEventProcessed(eventId)) {
-      logger.debug('Skipping already processed event:', eventId);
-      return;
-    }
-
-    // イベントが対象のリアクションかチェック
+    // イベントが対象のリアクションかチェック（処理済みマーク前に行う）
+    // 非ターゲットリアクションを先にスキップすることで、
+    // 同一メッセージへの異なるリアクションが互いをブロックしないようにする
     if (event.reaction !== config.app.targetReaction) {
       logger.debug('Skipping non-target reaction:', event.reaction);
       return;
     }
 
+    // イベントが既に処理済みかチェック（ターゲットリアクションのみ）
+    if (sheetsService.isEventProcessed(eventId)) {
+      logger.debug('Skipping already processed event:', eventId);
+      return;
+    }
+
     // チャンネルタイプを取得
     const channelType = await slackService.getChannelType(event.item.channel);
-    
+
     // パブリックチャンネルまたはDMチャンネルの場合のみ処理
     if (channelType !== 'public' && channelType !== 'dm') {
       logger.debug('Skipping message from unsupported channel type:', channelType);
@@ -93,7 +95,7 @@ app.event('reaction_added', async ({ event }) => {
 
     // メッセージ情報を取得
     const message = await slackService.getMessageInfo(event.item.channel, event.item.ts);
-    
+
     // 投稿者の情報を取得
     const username = await slackService.getUserInfo(message.user);
 
@@ -115,19 +117,28 @@ app.event('reaction_added', async ({ event }) => {
     // スプレッドシートに行を追加
     await sheetsService.appendRow(row);
 
-    // イベントを処理済みとしてマーク
+    // appendRow成功後に処理済みマーク
+    // これにより:
+    // - appendRowが失敗した場合 → マークされていないのでSlackリトライ時に再処理可能
+    // - appendRowが成功した後 → データは既に保存済みなので、以降のエラー（addReaction等）でも重複を防止
     sheetsService.markEventAsProcessed(eventId);
 
     // 成功時にリアクションを追加
     await slackService.addReaction(event.item.channel, event.item.ts, 'list-added');
 
     logger.info('Successfully processed reaction and added to spreadsheet', {
-      messageId: message.ts,
+      eventTs: event.item.ts,    // リアクションイベントのts
+      messageTs: message.ts,      // 取得したメッセージのts
       username,
       channelType
     });
 
   } catch (error) {
+    // 注意: エラー発生時でも処理済みマークを解除しない
+    // markEventAsProcessedはappendRow成功後に呼ばれるため:
+    // - appendRow失敗時: まだマークされていないのでSlackリトライ時に再処理可能
+    // - appendRow成功後のエラー（addReaction等）: 既にマーク済みなのでデータ重複を防止
+
     logger.error('Error handling reaction_added event:', error);
     // Slackにエラー通知を送信
     if (error instanceof Error) {

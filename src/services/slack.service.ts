@@ -18,27 +18,58 @@ export class SlackServiceImpl implements SlackService {
 
   async getMessageInfo(channel: string, timestamp: string): Promise<SlackMessage> {
     try {
-      const result = await this.client.conversations.history({
+      // まずチャンネル直下のメッセージとして取得を試みる
+      const historyResult = await this.client.conversations.history({
         channel,
+        oldest: timestamp,
         latest: timestamp,
         limit: 1,
         inclusive: true
       });
 
-      if (!result.messages || result.messages.length === 0) {
-        throw new AppError('Message not found', 'MESSAGE_NOT_FOUND', 404);
+      if (historyResult.messages && historyResult.messages.length > 0) {
+        const message = historyResult.messages[0];
+        if (message.ts === timestamp) {
+          // タイムスタンプ一致 → 正しいメッセージ
+          const permalink = await this.getPermalink(channel, timestamp);
+          return {
+            ts: message.ts,
+            user: message.user || 'unknown',
+            text: message.text || '',
+            channel,
+            permalink
+          };
+        }
       }
 
-      const message = result.messages[0];
-      const permalink = await this.getPermalink(channel, timestamp);
+      // チャンネル直下で見つからない → スレッドメッセージとして取得
+      // conversations.repliesは返信メッセージのtsを直接渡しても動作する
+      logger.info('Message not found in channel history, trying as thread reply', { timestamp });
 
-      return {
-        ts: message.ts || timestamp,
-        user: message.user || 'unknown',
-        text: message.text || '',
+      const repliesResult = await this.client.conversations.replies({
         channel,
-        permalink
-      };
+        ts: timestamp,  // 返信メッセージのtsを直接渡す
+        inclusive: true
+      });
+
+      if (repliesResult.messages && repliesResult.messages.length > 0) {
+        // スレッド内の全メッセージから対象のタイムスタンプを検索
+        // Slack APIは親メッセージを最初に、返信メッセージを後に返すため、
+        // 最初のメッセージだけでなく全てを検索する必要がある
+        const targetMessage = repliesResult.messages.find(m => m.ts === timestamp);
+        if (targetMessage) {
+          const permalink = await this.getPermalink(channel, timestamp);
+          return {
+            ts: targetMessage.ts || timestamp,
+            user: targetMessage.user || 'unknown',
+            text: targetMessage.text || '',
+            channel,
+            permalink
+          };
+        }
+      }
+
+      throw new AppError('Message not found', 'MESSAGE_NOT_FOUND', 404);
     } catch (error) {
       logger.error('Error fetching message info:', error);
       throw new AppError(

@@ -140,6 +140,11 @@ export class SheetsServiceImpl implements SheetsService {
     }, 3600000);
   }
 
+  // イベントの処理済みマークを解除（エラー時のロールバック用）
+  unmarkEventAsProcessed(eventId: string): void {
+    this.processedEvents.delete(eventId);
+  }
+
   async appendRow(row: Partial<SheetRow>): Promise<void> {
     await this.initialize();
 
