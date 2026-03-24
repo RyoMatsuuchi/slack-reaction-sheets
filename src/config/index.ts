@@ -1,15 +1,15 @@
-import dotenv from 'dotenv';
-import { LogLevel } from '@slack/bolt';
+import { LogLevel } from "@slack/bolt";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
 // Validate required environment variables
 const requiredEnvVars = [
-  'SLACK_BOT_TOKEN',
-  'SLACK_SIGNING_SECRET',
-  'GOOGLE_SPREADSHEET_ID',
-  'GOOGLE_SERVICE_ACCOUNT_KEY',
+  "SLACK_BOT_TOKEN",
+  "SLACK_SIGNING_SECRET",
+  "GOOGLE_SPREADSHEET_ID",
+  "GOOGLE_SERVICE_ACCOUNT_KEY",
 ] as const;
 
 // Check for required environment variables
@@ -23,21 +23,25 @@ for (const envVar of requiredEnvVars) {
 let serviceAccountKey;
 try {
   // We can safely assert non-null here because we checked above
-  serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY as string);
+  serviceAccountKey = JSON.parse(
+    process.env.GOOGLE_SERVICE_ACCOUNT_KEY as string,
+  );
 } catch (error) {
-  throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.');
+  throw new Error(
+    "Invalid GOOGLE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.",
+  );
 }
 
 // Convert string log level to @slack/bolt LogLevel
 const getLogLevel = (level: string): LogLevel => {
   switch (level.toLowerCase()) {
-    case 'debug':
+    case "debug":
       return LogLevel.DEBUG;
-    case 'info':
+    case "info":
       return LogLevel.INFO;
-    case 'warn':
+    case "warn":
       return LogLevel.WARN;
-    case 'error':
+    case "error":
       return LogLevel.ERROR;
     default:
       return LogLevel.INFO;
@@ -49,7 +53,7 @@ export const config = {
   slack: {
     botToken: process.env.SLACK_BOT_TOKEN as string,
     signingSecret: process.env.SLACK_SIGNING_SECRET as string,
-    socketMode: process.env.SOCKET_MODE === 'true',
+    socketMode: process.env.SOCKET_MODE === "true",
     appToken: process.env.SLACK_APP_TOKEN, // Optional for Socket Mode
   },
   google: {
@@ -57,10 +61,13 @@ export const config = {
     serviceAccountKey,
   },
   app: {
-    port: parseInt(process.env.PORT || '3000', 10),
-    targetReaction: process.env.TARGET_REACTION || 'white_check_mark',
-    nodeEnv: process.env.NODE_ENV || 'development',
-    logLevel: getLogLevel(process.env.LOG_LEVEL || 'info'),
-    errorNotificationChannel: process.env.ERROR_NOTIFICATION_CHANNEL || '',
+    port: Number.parseInt(process.env.PORT || "3000", 10),
+    targetReaction: process.env.TARGET_REACTION || "white_check_mark",
+    nodeEnv: process.env.NODE_ENV || "development",
+    logLevel: getLogLevel(process.env.LOG_LEVEL || "info"),
+    errorNotificationChannel: process.env.ERROR_NOTIFICATION_CHANNEL || "",
+  },
+  discord: {
+    webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
   },
 };
