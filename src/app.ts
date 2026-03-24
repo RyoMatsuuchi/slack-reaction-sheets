@@ -90,8 +90,12 @@ app.event("reaction_added", async ({ event }) => {
     // チャンネルタイプを取得
     const channelType = await slackService.getChannelType(event.item.channel);
 
-    // パブリックチャンネルまたはDMチャンネルの場合のみ処理
-    if (channelType !== "public" && channelType !== "dm") {
+    // パブリック・プライベートチャンネルまたはDMチャンネルの場合のみ処理
+    if (
+      channelType !== "public" &&
+      channelType !== "private" &&
+      channelType !== "dm"
+    ) {
       logger.debug(
         "Skipping message from unsupported channel type:",
         channelType,
