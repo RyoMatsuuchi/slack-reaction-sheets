@@ -42,20 +42,19 @@ export class SlackServiceImpl implements SlackService {
         }
       }
 
-      // チャンネル直下で見つからない → スレッドメッセージとして取得
-      // conversations.repliesは返信メッセージのtsを直接渡しても動作する
+      // チャンネル直下で見つからない → スレッド返信として取得を試みる
+      // conversations.repliesに返信メッセージのtsを渡すと、そのメッセージ単体が返る
+      // （スレッド全体ではなく単一メッセージのみ。bolt-python#783参照）
       logger.info('Message not found in channel history, trying as thread reply', { timestamp });
 
       const repliesResult = await this.client.conversations.replies({
         channel,
-        ts: timestamp,  // 返信メッセージのtsを直接渡す
+        ts: timestamp,
+        limit: 1,
         inclusive: true
       });
 
       if (repliesResult.messages && repliesResult.messages.length > 0) {
-        // スレッド内の全メッセージから対象のタイムスタンプを検索
-        // Slack APIは親メッセージを最初に、返信メッセージを後に返すため、
-        // 最初のメッセージだけでなく全てを検索する必要がある
         const targetMessage = repliesResult.messages.find(m => m.ts === timestamp);
         if (targetMessage) {
           const permalink = await this.getPermalink(channel, timestamp);

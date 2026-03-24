@@ -60,7 +60,7 @@ export interface SheetsService {
   formatHeaders(): Promise<void>;
   isEventProcessed(eventId: string): boolean;
   markEventAsProcessed(eventId: string): void;
-  unmarkEventAsProcessed(eventId: string): void;  // エラー時のロールバック用
+
   formatDateForSheet(date: Date): string;
 }
 
