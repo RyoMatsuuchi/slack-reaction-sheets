@@ -18,7 +18,10 @@ export async function sendDiscordNotification(
     return;
   }
 
-  const message = `新しい問い合わせ #${notification.inquiryNumber} が登録されました。\n\n**システム**: ${notification.system}\n**発生日**: ${notification.date}\n**内容**: ${notification.content.substring(0, 500)}${notification.content.length > 500 ? "..." : ""}\n**Slackリンク**: ${notification.slackLink}\n\n調査を開始してください。`;
+  const contentPreview = notification.content
+    .substring(0, 300)
+    .replace(/\n/g, " ");
+  const message = `新しい問い合わせ #${notification.inquiryNumber} が登録されました。\n\n**システム**: ${notification.system}\n**発生日**: ${notification.date}\n**内容**: ${contentPreview}${notification.content.length > 300 ? "..." : ""}\n**Slackリンク**: ${notification.slackLink}\n\n調査を開始してください。`;
 
   try {
     const response = await fetch(webhookUrl, {
@@ -28,9 +31,11 @@ export async function sendDiscordNotification(
     });
 
     if (!response.ok) {
+      const body = await response.text();
       logger.error("Discord webhook failed:", {
         status: response.status,
         statusText: response.statusText,
+        body,
       });
     } else {
       logger.info(
